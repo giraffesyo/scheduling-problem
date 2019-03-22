@@ -50,6 +50,8 @@ const sortProcessesByPriority = (a: Process, b: Process) => {
   return 0
 }
 class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
+  interval?: NodeJS.Timeout
+
   state: Readonly<SchedulerState> = {
     currentTime: 0,
     timeOnCurrentProcess: 0,
@@ -102,6 +104,12 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
       })
     )
     return true
+  }
+
+  componentWillUnmount() {
+    if (this.interval) {
+      clearInterval(this.interval)
+    }
   }
 
   componentDidMount = async () => {
@@ -170,10 +178,18 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
     }
   }
 
+  scheduleAutomatically = () => {
+    if (this.interval) {
+      clearInterval(this.interval)
+    } else {
+      this.interval = setInterval(this.schedule, 100)
+    }
+  }
+
   render() {
     const { initialProcessesToSchedule } = this.props
     const { queueHistory, currentTime } = this.state
-    const { schedule } = this
+    const { schedule, scheduleAutomatically } = this
     return (
       <div className="container">
         <h1>Round Robin</h1>
@@ -227,6 +243,9 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
         </table>
         <div>Current Time: {currentTime}</div>
         <button onClick={schedule}>Advance</button>
+        <button onClick={scheduleAutomatically}>
+          {this.interval ? 'Stop' : 'Advance automatically'}
+        </button>
         <div>
           Queue:
           {queueHistory.map(({ name, complete }) => (
