@@ -24,6 +24,11 @@ export class Process {
     this.completionTime = null
     this.firstTouched = null
   }
+
+  getTurnaroundTime = () =>
+    this.completionTime ? this.completionTime - this.arrival : undefined
+  getWaitingTime = () =>
+    this.completionTime ? this.getTurnaroundTime()! - this.burst : undefined
 }
 
 interface SchedulerState {
@@ -151,6 +156,7 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
           draft.timeOnCurrentProcess++
           currentProcess.remainingTime--
           if (currentProcess.remainingTime === 0) {
+            currentProcess.completionTime = draft.currentTime
             draft.queue.splice(0, 1)
           } else if (draft.timeOnCurrentProcess >= TimeQuantum) {
             const [firstItem, ...restOfQueue] = draft.queue
@@ -161,7 +167,6 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
       )
     }
   }
-
 
   render() {
     const { initialProcessesToSchedule } = this.props
@@ -178,17 +183,32 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
               <th>Burst</th>
               <th>Arrival</th>
               <th>Remaining Time</th>
+              <th>Completion Time</th>
+              <th>Turnaround Time</th>
+              <th>Waiting Time</th>
             </tr>
           </thead>
           <tbody>
             {initialProcessesToSchedule.map(
-              ({ identifier, priority, burst, arrival, remainingTime }) => (
+              ({
+                identifier,
+                priority,
+                burst,
+                arrival,
+                completionTime,
+                remainingTime,
+                getTurnaroundTime,
+                getWaitingTime,
+              }) => (
                 <tr key={identifier}>
                   <td>{identifier}</td>
                   <td>{priority}</td>
                   <td>{burst}</td>
                   <td>{arrival}</td>
                   <td>{remainingTime}</td>
+                  <td>{completionTime}</td>
+                  <td>{getTurnaroundTime()}</td>
+                  <td>{getWaitingTime()}</td>
                 </tr>
               )
             )}
