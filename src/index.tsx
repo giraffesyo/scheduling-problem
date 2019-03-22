@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
-
+import 'bootstrap-css-only'
 import RoundRobin from './RoundRobin'
 import { Process } from './RoundRobin'
 

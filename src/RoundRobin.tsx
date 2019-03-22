@@ -173,9 +173,9 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
     const { queueHistory, currentTime } = this.state
     const { schedule } = this
     return (
-      <div>
+      <div className='container'>
         <h1>Round Robin</h1>
-        <table>
+        <table className='table'>
           <thead>
             <tr>
               <th>Process</th>
