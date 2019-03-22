@@ -80,6 +80,7 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
         // Check who wins, the new process or the current process and queue accordingly
         if (draft.queue.length < 1) {
           draft.queue = [preemptiveProcess, ...restOfProcesses]
+          draft.timeOnCurrentProcess = 0
         } else if (preemptiveProcess.priority > draft.queue[0].priority) {
           const [firstProcessOfOldQueue, ...restOfOldQueue] = draft.queue
           draft.queue = [
@@ -88,6 +89,7 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
             ...restOfProcesses,
             firstProcessOfOldQueue,
           ]
+          draft.timeOnCurrentProcess = 0
         } else {
           draft.queue = [...draft.queue, preemptiveProcess, ...restOfProcesses]
         }
@@ -136,15 +138,43 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
     }
   }
 
-  schedule = () => {
-    const { currentTime, processesToSchedule, queue } = this.state
+  schedule = async () => {
+    const { enqueueArrivedProcesses } = this
     // Get the current item from queue
+    await enqueueArrivedProcesses()
+    const {
+      currentTime,
+      processesToSchedule,
+      timeOnCurrentProcess,
+      TimeQuantum,
+      queue,
+    } = this.state
 
-    this.setState(
-      produce(draft => {
-        draft.currentTime++
-      })
-    )
+    if (queue.length < 1) {
+      this.setState(
+        produce(draft => {
+          draft.currentTime++
+          draft.timeOnCurrentProcess++
+        })
+      )
+    } else {
+      this.setState(
+        produce(draft => {
+          const currentProcess = draft.queue[0]
+          draft.currentTime++
+          draft.timeOnCurrentProcess++
+          currentProcess.remainingTime--
+          if (currentProcess.remainingTime === 0) {
+            //TODO: Add to a completed list here so we can keep track of remaining time correctly in the table
+            draft.queue.splice(0, 1)
+          } else if (draft.timeOnCurrentProcess > TimeQuantum) {
+            const [firstItem, ...restOfQueue] = draft.queue
+            draft.queue = [...restOfQueue, firstItem]
+            draft.timeOnCurrentProcess = 0
+          } // else we leave the item in place
+        })
+      )
+    }
   }
 
   decreaseTime = (currentProcess: Process) => {
