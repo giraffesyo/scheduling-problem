@@ -8,7 +8,7 @@ export class Process {
   arrival: number
   remainingTime: number
   completionTime: number | null
-  firstTouched: number | null
+  current: boolean
 
   constructor(
     identifier: string,
@@ -22,7 +22,7 @@ export class Process {
     this.arrival = arrival
     this.remainingTime = burst
     this.completionTime = null
-    this.firstTouched = null
+    this.current = false
   }
 
   getTurnaroundTime = () =>
@@ -82,10 +82,13 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
         )
         // Check who wins, the new process or the current process and queue accordingly
         if (draft.queue.length < 1) {
+          preemptiveProcess.current = true
           draft.queue = [preemptiveProcess, ...restOfProcesses]
           draft.timeOnCurrentProcess = 0
         } else if (preemptiveProcess.priority > draft.queue[0].priority) {
           const [firstProcessOfOldQueue, ...restOfOldQueue] = draft.queue
+          firstProcessOfOldQueue.current = false
+          preemptiveProcess.current = true
           draft.queue = [
             preemptiveProcess,
             ...restOfOldQueue,
@@ -148,10 +151,18 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
           currentProcess.remainingTime--
           if (currentProcess.remainingTime === 0) {
             currentProcess.completionTime = draft.currentTime
+            currentProcess.current = false
             draft.queue.splice(0, 1)
+            if (draft.queue.length > 0) {
+              draft.queue[0].current = true
+            }
           } else if (draft.timeOnCurrentProcess >= TimeQuantum) {
             const [firstItem, ...restOfQueue] = draft.queue
             draft.queue = [...restOfQueue, firstItem]
+            if (restOfQueue.length != 0) {
+              firstItem.current = false
+              restOfQueue[0].current = true
+            }
             draft.timeOnCurrentProcess = 0
           } // else we leave the item in place
         })
@@ -164,9 +175,9 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
     const { queueHistory, currentTime } = this.state
     const { schedule } = this
     return (
-      <div className='container'>
+      <div className="container">
         <h1>Round Robin</h1>
-        <table className='table'>
+        <table className="table">
           <thead>
             <tr>
               <th>Process</th>
@@ -190,8 +201,17 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
                 remainingTime,
                 getTurnaroundTime,
                 getWaitingTime,
+                current,
               }) => (
-                <tr key={identifier}>
+                <tr
+                  className={
+                    completionTime
+                      ? 'table-success'
+                      : current
+                      ? 'table-primary '
+                      : ''
+                  }
+                  key={identifier}>
                   <td>{identifier}</td>
                   <td>{priority}</td>
                   <td>{burst}</td>
