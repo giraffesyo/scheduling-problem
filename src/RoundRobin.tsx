@@ -162,17 +162,11 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
     }
   }
 
-  getRemainingTime = (identifier: string) => {
-    const { initialProcessesToSchedule } = this.props
-    const [process] = initialProcessesToSchedule.filter(
-      ({ identifier: name }) => name === identifier
-    )
-    return process.remainingTime
-  }
+
   render() {
     const { initialProcessesToSchedule } = this.props
     const { queueHistory, currentTime } = this.state
-    const { schedule, getRemainingTime } = this
+    const { schedule } = this
     return (
       <div>
         <h1>Round Robin</h1>
@@ -188,13 +182,13 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
           </thead>
           <tbody>
             {initialProcessesToSchedule.map(
-              ({ identifier, priority, burst, arrival }) => (
+              ({ identifier, priority, burst, arrival, remainingTime }) => (
                 <tr key={identifier}>
                   <td>{identifier}</td>
                   <td>{priority}</td>
                   <td>{burst}</td>
                   <td>{arrival}</td>
-                  <td>{getRemainingTime(identifier)}</td>
+                  <td>{remainingTime}</td>
                 </tr>
               )
             )}
