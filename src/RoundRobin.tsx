@@ -1,7 +1,7 @@
 import React from 'react'
 import produce from 'immer'
 
-class Process {
+export class Process {
   identifier: string
   priority: number
   burst: number
@@ -26,126 +26,125 @@ class Process {
   }
 }
 
-class Queue {
-  queue: Process[] = []
-
-  pop = () => {
-    if (this.queue.length === 0) {
-      return null
-    }
-    const [itemToReturn, ...newQueue] = this.queue
-    this.queue = newQueue
-    return itemToReturn
-  }
-
-  enqueue = (process: Process) => {
-    this.queue = [...this.queue, process]
-  }
-
-  enqueueAtFront = (process: Process) => {
-    this.queue = [process, ...this.queue]
-  }
-
-  peek = () => {
-    if (this.queue.length > 0) {
-      return this.queue[0]
-    } else {
-      return null
-    }
-  }
-}
-
 interface SchedulerState {
   currentTime: number
   timeIdle: number
   timeOnCurrentProcess: number
-  queue: Queue
+  queue: Process[]
   TimeQuantum: number
   processesToSchedule: Process[]
+  queueHistory: { name: string; complete: boolean }[]
 }
 
-class Scheduler extends React.PureComponent<{}, SchedulerState> {
-  state = {
+interface SchedulerProps {
+  initialProcessesToSchedule: Process[]
+}
+
+const sortProcessesByPriority = (a: Process, b: Process) => {
+  if (a.priority > b.priority) return -1
+  if (b.priority > a.priority) return 1
+  return 0
+}
+class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
+  state: Readonly<SchedulerState> = {
     currentTime: 0,
     timeIdle: 0,
     timeOnCurrentProcess: 0,
-    queue: new Queue(),
+    queue: [],
     TimeQuantum: 10,
-    processesToSchedule: [
-      new Process('P1', 40, 15, 0),
-      new Process('P2', 30, 25, 25),
-      new Process('P3', 30, 20, 30),
-      new Process('P4', 35, 15, 50),
-      new Process('P5', 5, 15, 100),
-      new Process('P6', 10, 10, 105),
-    ],
+    processesToSchedule: [],
+    queueHistory: [],
   }
 
-  // Returns a process which has arrived and not queued, e.g. "new arrival",
-  //if there are multiple it returns the highest priority one
+  // Updates queue with processes that have arrived but not queued, e.g. "new arrival",
   //Additionally, it handles removing the process from our process list so we won't get it again
-  findArrivedProcessWithHighestPriority = () => {
-    const { currentTime, processesToSchedule } = this.state
+  enqueueArrivedProcesses = (): boolean => {
     //all remaining processes which have arrived
-    const foundProcesses = processesToSchedule!.filter(
-      Process => Process.arrival <= currentTime
+    const { processesToSchedule, currentTime } = this.state
+    const foundProcesses: Process[] = processesToSchedule!.filter(
+      (process: Process) => process.arrival <= currentTime
     )
 
-    if (foundProcesses.length < 1) return null
+    if (foundProcesses.length < 1) return false
 
-    let highestPriorityProcess = foundProcesses[0]
-    foundProcesses.forEach(Process => {
-      if (Process.priority > highestPriorityProcess.priority)
-        highestPriorityProcess = Process
-    })
-    // remove this process from our list of processes
+    // sort processes by priority
+    foundProcesses.sort(sortProcessesByPriority)
+    const [preemptiveProcess, ...restOfProcesses] = foundProcesses
+    // enqueue our processes and
+    // remove these processes from our list of processes
     this.setState(
       produce(draft => {
-        draft.processesToSchedule.splice(
-          draft.processesToSchedule.findIndex(
-            ({ identifier }) => identifier === highestPriorityProcess.identifier
-          ),
-          1
+        draft.processesToSchedule = draft.processesToSchedule.filter(
+          (process: Process) => !foundProcesses.includes(process)
         )
+        // Check who wins, the new process or the current process and queue accordingly
+        if (draft.queue.length < 1) {
+          draft.queue = [preemptiveProcess, ...restOfProcesses]
+        } else if (preemptiveProcess.priority > draft.queue[0].priority) {
+          const [firstProcessOfOldQueue, ...restOfOldQueue] = draft.queue
+          draft.queue = [
+            preemptiveProcess,
+            ...restOfOldQueue,
+            ...restOfProcesses,
+            firstProcessOfOldQueue,
+          ]
+        } else {
+          draft.queue = [...draft.queue, preemptiveProcess, ...restOfProcesses]
+        }
       })
     )
-    return highestPriorityProcess
+    return true
   }
 
-  finishCurrentProcess = () => {
-    const { currentTime } = this.state
-    if (!currentProcess)
-      throw new Error('There is not a current process to complete')
-    //currentProcess.completionTime = currentTime
+  // finishCurrentProcess = () => {
+  //   const { currentTime } = this.state
+  //   if (!currentProcess)
+  //     throw new Error('There is not a current process to complete')
+  //   //currentProcess.completionTime = currentTime
 
-    this.setState({ timeOnCurrentProcess: 0 })
-  }
+  //   this.setState({ timeOnCurrentProcess: 0 })
+  // }
 
-  componentDidMount = () => {
+  componentDidMount = async () => {
     let { currentTime } = this.state
+    const { initialProcessesToSchedule: processesToSchedule } = this.props
+    await this.setState({ processesToSchedule })
     // Get the first process
-    let currentProcess
+    let enqueuedSuccessfully = false
     while (true) {
-      currentProcess = this.findArrivedProcessWithHighestPriority()
-      // If we got null then we need to keep adding time until we get the first process
-      if (!currentProcess) {
+      enqueuedSuccessfully = this.enqueueArrivedProcesses()
+      // If we didnt enqueue successfully then we need to keep adding time
+      // until we get the first processes in queue
+      if (!enqueuedSuccessfully) {
         currentTime++
         continue
       } else {
         break
       }
+      // }
+      // this.setState(
+      //   produce(draft => {
+      //     draft.currentTime = currentTime
+      //     draft.queue = [currentProcess!]
+      //     // add this process to queue history as incomplete
+      //     draft.queueHistory = [
+      //       ...draft.queueHistory,
+      //       { name: currentProcess!.identifier, complete: false },
+      //     ]
+      //   })
+      // )
     }
-    this.state.queue
-    this.setState({ currentTime })
   }
 
   schedule = () => {
-    const { currentTime } = this.state
-    const { processesToSchedule } = this.state
-    const currentProcess = processesToSchedule!.filter(
-      Process => Process.identifier === currentProcessName
-    )[0]
-    //Run
+    const { currentTime, processesToSchedule, queue } = this.state
+    // Get the current item from queue
+
+    this.setState(
+      produce(draft => {
+        draft.currentTime++
+      })
+    )
   }
 
   decreaseTime = (currentProcess: Process) => {
@@ -162,30 +161,62 @@ class Scheduler extends React.PureComponent<{}, SchedulerState> {
       )
   }
 
+  getRemainingTime = (identifier: string) => {
+    const { queue } = this.state
+    const { initialProcessesToSchedule } = this.props
+    const results = queue.filter(({ identifier: name }) => name === identifier)
+    // if no results use the burst time for now
+    //TODO: Fix this as it will break in the end when a process is removed from queue
+    if (results.length < 1) {
+      const [process] = initialProcessesToSchedule.filter(
+        ({ identifier: name }) => name === identifier
+      )
+      return process.remainingTime
+    } else {
+      return results[0].remainingTime
+    }
+  }
   render() {
-    const { processesToSchedule } = this.state
-    console.log(processesToSchedule)
+    const { initialProcessesToSchedule } = this.props
+    const { queueHistory, currentTime } = this.state
+    const { schedule, getRemainingTime } = this
     return (
       <div>
         <h1>Round Robin</h1>
         <table>
-          <tr>
-            <th>Process</th>
-            <th>Priority</th>
-            <th>Burst</th>
-            <th>Arrival</th>
-          </tr>
-          {processesToSchedule.map(
-            ({ identifier, priority, burst, arrival }) => (
-              <tr>
-                <td>{identifier}</td>
-                <td>{priority}</td>
-                <td>{burst}</td>
-                <td>{arrival}</td>
-              </tr>
-            )
-          )}
+          <thead>
+            <tr>
+              <th>Process</th>
+              <th>Priority</th>
+              <th>Burst</th>
+              <th>Arrival</th>
+              <th>Remaining Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {initialProcessesToSchedule.map(
+              ({ identifier, priority, burst, arrival }) => (
+                <tr key={identifier}>
+                  <td>{identifier}</td>
+                  <td>{priority}</td>
+                  <td>{burst}</td>
+                  <td>{arrival}</td>
+                  <td>{getRemainingTime(identifier)}</td>
+                </tr>
+              )
+            )}
+          </tbody>
         </table>
+        <div>Current Time: {currentTime}</div>
+        <button onClick={schedule}>Advance</button>
+        <div>
+          Queue:
+          {queueHistory.map(({ name, complete }) => (
+            <span key={`qh-${name}`}>
+              {complete ? <del> {name}</del> : name}
+            </span>
+          ))}
+        </div>
       </div>
     )
   }
