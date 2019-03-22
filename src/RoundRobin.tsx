@@ -101,15 +101,6 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
     return true
   }
 
-  // finishCurrentProcess = () => {
-  //   const { currentTime } = this.state
-  //   if (!currentProcess)
-  //     throw new Error('There is not a current process to complete')
-  //   //currentProcess.completionTime = currentTime
-
-  //   this.setState({ timeOnCurrentProcess: 0 })
-  // }
-
   componentDidMount = async () => {
     let { currentTime } = this.state
     const { initialProcessesToSchedule: processesToSchedule } = this.props
