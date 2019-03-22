@@ -38,6 +38,7 @@ interface SchedulerState {
   TimeQuantum: number
   processesToSchedule: Process[]
   queueHistory: { name: string; complete: boolean }[]
+  advancingAutomatically: boolean
 }
 
 interface SchedulerProps {
@@ -59,6 +60,7 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
     TimeQuantum: 10,
     processesToSchedule: [],
     queueHistory: [],
+    advancingAutomatically: false,
   }
 
   // Updates queue with processes that have arrived but not queued, e.g. "new arrival",
@@ -181,15 +183,21 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
   scheduleAutomatically = () => {
     if (this.interval) {
       clearInterval(this.interval)
+      this.interval = undefined
+      this.setState({ advancingAutomatically: false })
     } else {
       this.interval = setInterval(this.schedule, 100)
+      this.setState({ advancingAutomatically: true })
     }
   }
 
   render() {
-    const { initialProcessesToSchedule } = this.props
-    const { queueHistory, currentTime } = this.state
-    const { schedule, scheduleAutomatically } = this
+    const {
+      schedule,
+      scheduleAutomatically,
+      props: { initialProcessesToSchedule },
+      state: { queueHistory, currentTime, advancingAutomatically },
+    } = this
     return (
       <div className="container">
         <h1>Round Robin</h1>
@@ -242,9 +250,23 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
           </tbody>
         </table>
         <div>Current Time: {currentTime}</div>
-        <button onClick={schedule}>Advance</button>
-        <button onClick={scheduleAutomatically}>
-          {this.interval ? 'Stop' : 'Advance automatically'}
+        {advancingAutomatically ? null : (
+          <button className="btn btn-primary mr-2" onClick={schedule}>
+            Advance
+          </button>
+        )}
+        <button
+          className={[
+            advancingAutomatically ? 'btn btn-danger' : 'btn btn-success',
+            'mr-2',
+          ].join(' ')}
+          onClick={scheduleAutomatically}>
+          {advancingAutomatically ? 'Stop' : 'Advance automatically'}
+        </button>
+        <button
+          className="btn btn-warning"
+          onClick={() => window.location.reload()}>
+          Reload
         </button>
         <div>
           Queue:
