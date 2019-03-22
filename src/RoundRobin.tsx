@@ -28,7 +28,6 @@ export class Process {
 
 interface SchedulerState {
   currentTime: number
-  timeIdle: number
   timeOnCurrentProcess: number
   queue: Process[]
   TimeQuantum: number
@@ -48,7 +47,6 @@ const sortProcessesByPriority = (a: Process, b: Process) => {
 class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
   state: Readonly<SchedulerState> = {
     currentTime: 0,
-    timeIdle: 0,
     timeOnCurrentProcess: 0,
     queue: [],
     TimeQuantum: 10,
@@ -123,18 +121,6 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
       } else {
         break
       }
-      // }
-      // this.setState(
-      //   produce(draft => {
-      //     draft.currentTime = currentTime
-      //     draft.queue = [currentProcess!]
-      //     // add this process to queue history as incomplete
-      //     draft.queueHistory = [
-      //       ...draft.queueHistory,
-      //       { name: currentProcess!.identifier, complete: false },
-      //     ]
-      //   })
-      // )
     }
   }
 
@@ -165,9 +151,8 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
           draft.timeOnCurrentProcess++
           currentProcess.remainingTime--
           if (currentProcess.remainingTime === 0) {
-            //TODO: Add to a completed list here so we can keep track of remaining time correctly in the table
             draft.queue.splice(0, 1)
-          } else if (draft.timeOnCurrentProcess > TimeQuantum) {
+          } else if (draft.timeOnCurrentProcess >= TimeQuantum) {
             const [firstItem, ...restOfQueue] = draft.queue
             draft.queue = [...restOfQueue, firstItem]
             draft.timeOnCurrentProcess = 0
@@ -177,34 +162,12 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
     }
   }
 
-  decreaseTime = (currentProcess: Process) => {
-    const newProcess = {
-      ...currentProcess,
-      remainingTime: currentProcess.remainingTime - 1,
-    }
-    if (newProcess.remainingTime === 0)
-      this.setState(
-        produce(draft => {
-          draft.currentTime += 1
-          draft.timeOnCurrentProcess += 1
-        })
-      )
-  }
-
   getRemainingTime = (identifier: string) => {
-    const { queue } = this.state
     const { initialProcessesToSchedule } = this.props
-    const results = queue.filter(({ identifier: name }) => name === identifier)
-    // if no results use the burst time for now
-    //TODO: Fix this as it will break in the end when a process is removed from queue
-    if (results.length < 1) {
-      const [process] = initialProcessesToSchedule.filter(
-        ({ identifier: name }) => name === identifier
-      )
-      return process.remainingTime
-    } else {
-      return results[0].remainingTime
-    }
+    const [process] = initialProcessesToSchedule.filter(
+      ({ identifier: name }) => name === identifier
+    )
+    return process.remainingTime
   }
   render() {
     const { initialProcessesToSchedule } = this.props
