@@ -89,6 +89,18 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
           preemptiveProcess.current = true
           draft.queue = [preemptiveProcess, ...restOfProcesses]
           draft.timeOnCurrentProcess = 0
+
+          // Add these to queue history
+          draft.queueHistory.push({
+            complete: false,
+            name: preemptiveProcess.identifier,
+          })
+          restOfProcesses.forEach(process =>
+            draft.queueHistory.push({
+              complete: false,
+              name: process.identifier,
+            })
+          )
         } else if (preemptiveProcess.priority > draft.queue[0].priority) {
           const [firstProcessOfOldQueue, ...restOfOldQueue] = draft.queue
           firstProcessOfOldQueue.current = false
@@ -100,6 +112,25 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
             firstProcessOfOldQueue,
           ]
           draft.timeOnCurrentProcess = 0
+
+          // Add to queue history
+          draft.queueHistory.forEach(queueItem => (queueItem.complete = true))
+          draft.queueHistory.push({
+            name: preemptiveProcess.identifier,
+            complete: false,
+          })
+          restOfOldQueue.forEach(process =>
+            draft.queueHistory.push({
+              name: process.identifier,
+              complete: false,
+            })
+          )
+          restOfProcesses.forEach(process =>
+            draft.queueHistory.push({
+              name: process.identifier,
+              complete: false,
+            })
+          )
         } else {
           draft.queue = [...draft.queue, preemptiveProcess, ...restOfProcesses]
         }
@@ -163,15 +194,28 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
             currentProcess.completionTime = draft.currentTime
             currentProcess.current = false
             draft.queue.splice(0, 1)
+            // Mark the queue history for this item as complete
+            draft.queueHistory[draft.queueHistory.length - 1].complete = true
             if (draft.queue.length > 0) {
               draft.queue[0].current = true
+
+              draft.queueHistory.push({
+                name: draft.queue[0].identifier,
+                complete: false,
+              })
             }
           } else if (draft.timeOnCurrentProcess >= TimeQuantum) {
             const [firstItem, ...restOfQueue] = draft.queue
             draft.queue = [...restOfQueue, firstItem]
+
             if (restOfQueue.length != 0) {
               firstItem.current = false
               restOfQueue[0].current = true
+              draft.queueHistory[draft.queueHistory.length - 1].complete = true
+              draft.queueHistory.push({
+                name: restOfQueue[0].identifier,
+                complete: false,
+              })
             }
             draft.timeOnCurrentProcess = 0
           } // else we leave the item in place
