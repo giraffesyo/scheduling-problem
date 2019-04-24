@@ -1,6 +1,7 @@
 import React from 'react'
 
 import { Process } from './utility'
+import _ from 'lodash'
 
 interface MultilevelQueueProps {
   initialProcessesToSchedule: Process[]
@@ -21,7 +22,18 @@ export default class MultilevelQueue extends React.PureComponent<
 
   constructor(props: MultilevelQueueProps) {
     super(props)
-    console.log(props)
+    let time = 0
+    // Get a copy of our initial Processes
+    let queue = [...props.initialProcessesToSchedule]
+    let arrived: Process[] = []
+    while (queue.length > 0 || arrived.length > 0 && time < 1000){
+      // check if there are any  arrived processes
+      arrived = [...arrived ,..._.remove(queue,process => process.arrival === time)]
+      console.log('arrived',arrived)
+      console.log('queue', queue)
+      // increment time
+      time++
+    }
   }
 
   render() {
