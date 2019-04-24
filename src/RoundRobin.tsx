@@ -80,7 +80,7 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
     // enqueue our processes and
     // remove these processes from our list of processes
     this.setState(
-      produce(draft => {
+      produce<SchedulerState>(draft => {
         draft.processesToSchedule = draft.processesToSchedule.filter(
           (process: Process) => !foundProcesses.includes(process)
         )
@@ -178,14 +178,14 @@ class Scheduler extends React.PureComponent<SchedulerProps, SchedulerState> {
 
     if (queue.length < 1) {
       this.setState(
-        produce(draft => {
+        produce<SchedulerState>(draft => {
           draft.currentTime++
           draft.timeOnCurrentProcess++
         })
       )
     } else {
       this.setState(
-        produce(draft => {
+        produce<SchedulerState>(draft => {
           const currentProcess = draft.queue[0]
           draft.currentTime++
           draft.timeOnCurrentProcess++
