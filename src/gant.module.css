@@ -1,0 +1,12 @@
+.timing {
+  position: relative;
+}
+.timing span {
+  position: absolute;
+  left: -5px;
+  top: 0;
+}
+.timing span.last {
+  left: unset;
+  right: -5px;
+}
