@@ -64,7 +64,7 @@ interface MultilevelQueueState {
   history: string[]
 }
 
-const chooseCurrentProcess = (processes: Process[]) => {}
+
 export default class MultilevelQueue extends React.PureComponent<
   MultilevelQueueProps,
   MultilevelQueueState
