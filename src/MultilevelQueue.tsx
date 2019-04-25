@@ -64,7 +64,6 @@ interface MultilevelQueueState {
   history: string[]
 }
 
-
 export default class MultilevelQueue extends React.PureComponent<
   MultilevelQueueProps,
   MultilevelQueueState
@@ -106,6 +105,9 @@ export default class MultilevelQueue extends React.PureComponent<
         currentProcess) &&
       time < 150
     ) {
+      if (currentProcess) {
+        console.log(`Starting to process ${currentProcess.identifier}, time: ${time}, queue: ${processingQueue}, time quantum: ${props.timeQuantum[processingQueue]} `)
+      }
       // get queue 1 length
       const previousHighPriorityQueueSize = queues[0].length
       // check if there are any  arrived processes and put them in their queue
@@ -138,15 +140,15 @@ export default class MultilevelQueue extends React.PureComponent<
       }
 
       // handle if time quantum has passed
-      if (timeOnCurrentProcess > props.timeQuantum[processingQueue]) {
-        // get the queue of the current process
-        let currentQueue = currentProcess!.priority
+      if (timeOnCurrentProcess >= props.timeQuantum[processingQueue]) {
         // put our current process back at the end of its queue
-        queues[currentQueue - 1].push(currentProcess!)
+        queues[processingQueue].push(currentProcess!)
         // find out next queue
         let nextQueue = queues[0].length > 0 ? 0 : 1
         // get the next item to process from the highest priority queue with arrived processes
         currentProcess = queues[nextQueue].shift()
+        timeOnCurrentProcess = 0
+        processingQueue = currentProcess!.priority - 1
       }
 
       console.log('unarrived', unarrived)
