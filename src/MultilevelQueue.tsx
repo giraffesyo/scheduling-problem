@@ -43,7 +43,10 @@ const GantTable = ({ history }: { history: string[] }) => {
               className={gant.timing}
               key={'time' + '-' + cell.start}
               colSpan={cell.stop - cell.start}>
-              <span>{cell.start}</span>{index === cells.length -1 ? <span className={gant.last}>{cell.stop}</span>: null}
+              <span>{cell.start}</span>
+              {index === cells.length - 1 ? (
+                <span className={gant.last}>{cell.stop}</span>
+              ) : null}
             </td>
           ))}
         </tr>
@@ -240,6 +243,22 @@ export default class MultilevelQueue extends React.PureComponent<
           </tbody>
         </table>
         <GantTable history={this.state.history} />
+        <h3>
+          Average turnaround time:{' '}
+          {initialProcessesToSchedule.reduce(
+            (collector, currentProcess) =>
+              collector + currentProcess.getTurnaroundTime()!,
+            0
+          ) / initialProcessesToSchedule.length}
+        </h3>
+        <h3>
+          Average waiting time:{' '}
+          {initialProcessesToSchedule.reduce(
+            (collector, currentProcess) =>
+              collector + currentProcess.getWaitingTime()!,
+            0
+          ) / initialProcessesToSchedule.length}
+        </h3>
       </div>
     )
   }
