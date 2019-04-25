@@ -103,7 +103,7 @@ export default class MultilevelQueue extends React.PureComponent<
         queues[0].length > 0 ||
         queues[1].length > 0 ||
         currentProcess) &&
-      time < 150
+      time < 1500 //upper bound for safety
     ) {
       if (currentProcess) {
         console.log(`Starting to process ${currentProcess.identifier}, time: ${time}, queue: ${processingQueue}, time quantum: ${props.timeQuantum[processingQueue]} `)
